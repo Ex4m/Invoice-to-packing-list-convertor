@@ -1,19 +1,20 @@
 import re
 from pdfminer.high_level import extract_pages, extract_text
 import geonamescache
+import pycountry
 
 gc = geonamescache.GeonamesCache()
 cities = gc.get_cities()
-
+state_list = list(pycountry.countries) 
 city_names = set(city['name'] for city in cities.values())
 
 """for page_layout in extract_pages("invoice.pdf"):
     for element in page_layout:
         print(element)"""
         
-text = extract_text("invoice.pdf")
+text = extract_text("invoice_3.pdf")
 
-customer = re.compile("Delivery Adress:")
+
 
 #print(customer)
 
@@ -35,24 +36,35 @@ def incoterm_overlook(incoterm_list):
 
 def find_city(delivery_adress):
     tokenized = delivery_adress.split()
+    if "Asahi" in tokenized:
+        tokenized.remove("Asahi")
     for i in tokenized:
-        #if print(len(gc.search_cities(i,case_sensitive=False))) != 0:
-        if i in gc.get_cities_by_name(i):
+        if gc.get_cities_by_name(i):
             return i
-        
-        
+    
+    
+
+def find_state_code():
+    tokenized = delivery_adress.split()
+    for i in tokenized:
+        if i in [country.alpha_2 for country in pycountry.countries]:
+            return i 
+            
+    
 
 
 
 
 founded_inco = incoterm_overlook(incoterm_list)
 founded_city = find_city(delivery_adress)
-
-"""print(delivery_adress)
-print(founded_inco)"""
+founded_state = find_state_code()
+"""delivery_note =
+invoice_num = 
+zb =
+"""
+print(text)
+print(founded_inco)
 print(founded_city)
-print(cities)
-"""result = gc.search_cities("kudasesgsr", case_sensitive= False)
-if result != None:
-    print(result)"""
-#print(gc.search_cities('Dubai', case_sensitive=False))
+print(founded_state)
+
+

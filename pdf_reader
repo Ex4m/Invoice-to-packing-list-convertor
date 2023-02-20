@@ -2,6 +2,8 @@ import re
 from pdfminer.high_level import extract_pages, extract_text
 import geonamescache
 import pycountry
+import pypdf
+
 
 gc = geonamescache.GeonamesCache()
 cities = gc.get_cities()
@@ -14,9 +16,6 @@ city_names = set(city['name'] for city in cities.values())
         
 text = extract_text("invoice_3.pdf")
 
-
-
-#print(customer)
 
 delivery = text.find("Delivery")
 end = text.find("Payment")
@@ -68,3 +67,71 @@ print(founded_city)
 print(founded_state)
 
 
+
+
+pdf_reader = pypdf.PdfReader("invoice_3.pdf")
+
+
+
+# Get the number of pages in the PDF file
+num_pages = len(pdf_reader.pages)
+
+# Loop over each page in the PDF file
+def print_pages():
+    for page_num in range(num_pages):
+        # Get the page object for the current page
+        page = pdf_reader.pages[page_num]
+
+        # Extract the text content from the page
+        page_text = page.extract_text()
+
+        # Print the text content to the console
+        if page_text.find("PRODUCTS") == -1:
+            table_start = page_text.find("GOODS")
+        else:
+            table_start = page_text.find("PRODUCTS")
+        table_end = page_text.find("OTHERS")
+        table = page_text[table_start:table_end]
+        return table
+    
+
+# najít ZB podle ZB klíče a produkt bude vždy za netto váhou .. hledat dle ,(0-9)(0-9)
+
+# Define the regular expression patterns
+zb_pattern = r"ZB\w+"
+quant_pattern = r"pc\w+"
+desc_pattern = r"%\s\d{1,5},\d{2}"
+desc_pattern2 = r"%\d{1,5},\d{2}" 
+table = print_pages()
+
+print(table)
+# Find all matches of the code pattern in the input string
+codes = re.findall(zb_pattern, table)
+quantity_list = re.findall(quant_pattern, table)
+quantity_list = [quantity.replace('pc', '') for quantity in quantity_list]
+description = re.findall(desc_pattern, table)
+description2 = re.findall(desc_pattern2, table)
+description.extend(description2)
+
+
+def last_element(table, pattern):
+    row_table = table.split('\n')
+    end_list = []
+    for row in row_table:
+        if re.search(pattern, row):
+            end = row.split()[-1]
+            end_list.append(end)
+    return end_list, row_table
+
+end_list,row_table = last_element(table,zb_pattern)
+
+# Print the results
+print("Codes: ", codes)
+print("Quantity: ", quantity_list)
+print("Product description: ", description)
+print("End list : ",end_list)  
+
+for start, end in zip(description, end_list):
+    start_pos = table.find(start) + len(start) + 1
+    end_pos = table.find(end, start_pos) # finds the index of the first occurrence of end after the start substring.
+    print(table[start_pos:end_pos + 2])

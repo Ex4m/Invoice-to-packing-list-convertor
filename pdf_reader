@@ -59,7 +59,9 @@ founded_city = find_city(delivery_adress)
 founded_state = find_state_code()
 """delivery_note =
 invoice_num = 
-zb =
+zb = done
+quant = done
+description = done
 """
 print(text)
 print(founded_inco)
@@ -69,7 +71,7 @@ print(founded_state)
 
 
 
-pdf_reader = pypdf.PdfReader("invoice_3.pdf")
+pdf_reader = pypdf.PdfReader("invoice.pdf")
 
 
 

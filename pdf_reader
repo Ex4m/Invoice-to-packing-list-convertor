@@ -58,7 +58,8 @@ founded_inco = incoterm_overlook(incoterm_list)
 founded_city = find_city(delivery_adress)
 founded_state = find_state_code()
 """delivery_note =
-invoice_num = 
+invoice_num = done
+netto = done
 zb = done
 quant = done
 description = done
@@ -71,7 +72,7 @@ print(founded_state)
 
 
 
-pdf_reader = pypdf.PdfReader("invoice.pdf")
+pdf_reader = pypdf.PdfReader("invoice_2.pdf")
 
 
 
@@ -94,26 +95,48 @@ def print_pages():
             table_start = page_text.find("PRODUCTS")
         table_end = page_text.find("OTHERS")
         table = page_text[table_start:table_end]
-        return table
+        return table,page_text
     
 
 # najít ZB podle ZB klíče a produkt bude vždy za netto váhou .. hledat dle ,(0-9)(0-9)
 
 # Define the regular expression patterns
 zb_pattern = r"ZB\w+"
-quant_pattern = r"pc\w+"
-desc_pattern = r"%\s\d{1,5},\d{2}"
-desc_pattern2 = r"%\d{1,5},\d{2}" 
-table = print_pages()
+quant_pattern = r"pc\s*\d{1,3}(?:\s+\d{3})*" # matches zero or more groups of one or more whitespace characters followed by exactly three digits.
+desc_pattern = r"%\s*\d{1,3}(?:\s+\d{3})*" # This pattern matches a percentage sign followed by a space, and then 1 to 5 digits, a comma, and 2 more digits. It can be used to match strings like "% 465,12".
+netto_pattern = r"%\s*\d{1,3}(?:\s+\d{3})*,\d{2}" # + ,00
+inv_pattern = r"\d{2}03\w+"  
+dl_pattern = r'\b\d{2}(SL|MH)01\d{4}\b'
+order_pattern = r"\d{2}[A-Z0-9]{4}0\d{10}INVOICE"
+
+  
+table,page_text = print_pages()
 
 print(table)
 # Find all matches of the code pattern in the input string
 codes = re.findall(zb_pattern, table)
 quantity_list = re.findall(quant_pattern, table)
-quantity_list = [quantity.replace('pc', '') for quantity in quantity_list]
+quantity_list = [quantity.replace('pc', '').replace('\xa0', '').strip() for quantity in quantity_list]
 description = re.findall(desc_pattern, table)
-description2 = re.findall(desc_pattern2, table)
-description.extend(description2)
+#description = [desc.replace("\xa0"," ").strip() for desc in description] # this will remove \xa0 from the string but it will not find it afterwards
+netto = re.findall(netto_pattern,table)
+netto = [net.replace("%","").replace('\xa0', '') for net in netto]
+
+
+def inv_lookup(what_to_look_for, text):
+    findings = re.findall(what_to_look_for, text)
+    """try:
+        for i in findings:
+            i.remove("INVOICE")
+    except:
+        pass"""
+    return findings
+
+invoice = re.search(inv_pattern, page_text)
+invoice = invoice.group(0)
+
+dl_note = re.findall(dl_pattern,page_text)
+order_num = inv_lookup(order_pattern, page_text)
 
 
 def last_element(table, pattern):
@@ -131,9 +154,18 @@ end_list,row_table = last_element(table,zb_pattern)
 print("Codes: ", codes)
 print("Quantity: ", quantity_list)
 print("Product description: ", description)
+print("Netto list is: ", netto)
 print("End list : ",end_list)  
+print("Invoice number is: ", invoice)
+print("Delivery note number is:", dl_note)
+print("Order number is: ", order_num)
 
 for start, end in zip(description, end_list):
     start_pos = table.find(start) + len(start) + 1
     end_pos = table.find(end, start_pos) # finds the index of the first occurrence of end after the start substring.
     print(table[start_pos:end_pos + 2])
+
+
+print("\n\n\n")
+#print(page_text)
+

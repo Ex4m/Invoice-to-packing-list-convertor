@@ -15,8 +15,9 @@ city_names = set(city['name'] for city in cities.values())
 """for page_layout in extract_pages("invoice.pdf"):
     for element in page_layout:
         print(element)"""
-        
-text = extract_text("invoice_3.pdf")
+ 
+inv_header = "invoice_2.pdf"        
+text = extract_text("inv_header")
 
 
 delivery = text.find("Delivery")
@@ -74,7 +75,7 @@ print(founded_state)
 
 
 
-pdf_reader = pypdf.PdfReader("invoice_3.pdf")
+pdf_reader = pypdf.PdfReader(inv_header)
 
 
 
@@ -171,7 +172,7 @@ print("\n\n\n")
 workbook = load_workbook("PL_blank.xlsx")
 ws = workbook["List1"]
 
-delivery_adress = delivery_adress.replace("Delivery adress:","")
+delivery_adress = delivery_adress.replace("Delivery adress:\n","")
 adress_cell = ws["B9"]
 adress_cell.alignment = Alignment(horizontal='left', wrap_text=True)
 adress_cell.value = delivery_adress
@@ -190,3 +191,5 @@ INV_cell.value = "INVOICE: " + invoice
 
 workbook.save(f"PL {dl_note[0]} {founded_city} {founded_state}.xlsx")
 print("PL was saved and exported")
+
+

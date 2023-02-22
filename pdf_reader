@@ -5,6 +5,7 @@ import pycountry
 import pypdf
 import openpyxl 
 from openpyxl import load_workbook
+from openpyxl.styles import Alignment
 
 gc = geonamescache.GeonamesCache()
 cities = gc.get_cities()
@@ -168,9 +169,24 @@ print("\n\n\n")
 
 
 workbook = load_workbook("PL_blank.xlsx")
-ws = workbook("Sheet1")
+ws = workbook["List1"]
 
-ws["B9"] = delivery_adress
+delivery_adress = delivery_adress.replace("Delivery adress:","")
+adress_cell = ws["B9"]
+adress_cell.alignment = Alignment(horizontal='left', wrap_text=True)
+adress_cell.value = delivery_adress
 
 
-workbook.save(f"PL {dl_note[0]} {founded_city} {founded_state}")
+PL_cell = ws["A5"]
+#PL_cell.alignment = Alignment(horizontal='center', wrap_text=True)
+PL_cell.value = "PACKING LIST - " + ", ".join(dl_note)
+
+
+INV_cell = ws["A7"]
+#INV_cell.alignment = Alignment(horizontal='center', wrap_text=True)
+INV_cell.value = "INVOICE: " + invoice
+
+
+
+workbook.save(f"PL {dl_note[0]} {founded_city} {founded_state}.xlsx")
+print("PL was saved and exported")

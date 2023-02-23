@@ -3,7 +3,8 @@ from pdfminer.high_level import extract_pages, extract_text
 import geonamescache
 import pycountry
 import pypdf
-import openpyxl 
+import pandas as pd
+
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
 
@@ -21,7 +22,7 @@ city_names = set(city['name'] for city in cities.values())
 
 
 
-inv_header = "Invoice no. 230300237.pdf"        
+inv_header = "invoice_2.pdf"        
 text = extract_text(inv_header)
 
 
@@ -155,7 +156,24 @@ def last_element(table, pattern):
 
 end_list,row_table = last_element(table,zb_pattern)
 
+print("\n\n\n")
+def solidity_check(founded_city, founded_state):
+    if founded_city is None or founded_state is None:
+        if founded_city is None:
+            print("City is missing")
+            founded_city = input("Type the name of the city: ")
+        if founded_state is None:
+            print("Country code is missing")
+            founded_state = input("Type the code of the country: ")
+        return solidity_check(founded_city, founded_state)
+    
+    print("City and Country code are OK")
+    return founded_city, founded_state
+founded_city,founded_state = solidity_check(founded_city,founded_state)
+
+
 # Print the results
+print("\n\n\n")
 print("Founded incoterm: ",founded_inco)
 print("Founded city: ",founded_city)
 print("Founded state: ",founded_state)
@@ -168,15 +186,7 @@ print("Invoice number is: ", invoice)
 print("Delivery note number is:", dl_note)
 print("Order number is: ", order_num)
 
-variable_names = [founded_inco, founded_city, founded_state, codes, quantity_list, netto, end_list, invoice, dl_note, order_num]
 
-
-for var in variable_names:
-    if eval(var) is None:
-        # ask user to manually input value
-        new_value = input(f"Please enter a value for {var}: ")
-        # set new value for variable
-        exec(f"{var} = {new_value}")
 
 def find_description():
     description_list = []
@@ -189,7 +199,6 @@ def find_description():
 
 description_list = find_description()
 
-    
         
 print("\n\n\n" )
 #print(page_text)
@@ -199,6 +208,7 @@ print("\n\n\n" )
 
 workbook = load_workbook("PL_blank.xlsx")
 ws = workbook["List1"]
+
 
 delivery_adress = delivery_adress.replace("Delivery adress:\n","")
 adress_cell = ws["B9"]

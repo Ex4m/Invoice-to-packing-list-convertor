@@ -19,23 +19,38 @@ city_names = set(city['name'] for city in cities.values())
 
 
 
-
-
-
-inv_header = "invoice_2.pdf"        
-text = extract_text(inv_header)
-
-
-
-
+while True:
+    try:
+        ask_for_name = input("What pdf file do you want to load: ")
+        inv_header = ask_for_name + ".pdf"        
+        text = extract_text(inv_header)
+        break
+    except Exception as chyba:
+        print(chyba)
 
 
 delivery = text.find("Delivery")
-end = text.find("Payment")
+def end_of_delivery():
+    end1 = text.find("Payment")
+    end2 = text.find("For\xa0custom")
+    len1 = len(text[delivery:end1-1])
+    len2 = len(text[delivery:end2-1])
+    if len1 < len2 and len1 > 50:
+        print("Returning end1 - Payment")
+        return end1
+    elif len2 < len1 and len2 > 50:
+        print("Returning end2 - For custom")
+        return end2
+    else:
+        return end1
+end = end_of_delivery()    
+
 
 delivery_adress = text[delivery:end-1]
+delivery_adress = delivery_adress.replace("Delivery adress:","")
+delivery_adress = delivery_adress.lstrip("\n")
 
-incoterm_list = ["EXW","FOB","FCA","CFR","CPT","CIF","CIP","DAP","DDP"]
+incoterm_list = ["EXW","FCA","FOB","CFR","CIF","CIP""CPT","DAP","DAT","DDP"]
 
 def incoterm_overlook(incoterm_list):
     for i in incoterm_list:
@@ -58,29 +73,16 @@ def find_city(delivery_adress):
 
 def find_state_code():
     tokenized = delivery_adress.split()
+    if "AS" in tokenized:
+        tokenized.remove("AS")
     for i in tokenized:
         if i in [country.alpha_2 for country in pycountry.countries]:
             return i 
-            
+      
     
-
-
-
-
 founded_inco = incoterm_overlook(incoterm_list)
 founded_city = find_city(delivery_adress)
 founded_state = find_state_code()
-"""delivery_note = done
-invoice_num = done
-netto = done
-zb = done
-quant = done
-description = done
-"""
-#print(text)
-
-
-
 
 
 pdf_reader = pypdf.PdfReader(inv_header)
@@ -109,13 +111,14 @@ def print_pages():
         return table,page_text
     
 
-# najít ZB podle ZB klíče a produkt bude vždy za netto váhou .. hledat dle ,(0-9)(0-9)
+
 
 # Define the regular expression patterns
 zb_pattern = r"ZB\w+"
 quant_pattern = r"pc\s*\d{1,3}(?:\s+\d{3})*" # matches zero or more groups of one or more whitespace characters followed by exactly three digits.
-desc_pattern = r"%\s*\d{1,3}(?:\s+\d{3})*" # This pattern matches a percentage sign followed by a space, and then 1 to 5 digits, a comma, and 2 more digits. It can be used to match strings like "% 465,12".
+desc_pattern = r"%\s*\d{1,3}(?:\s+\d{3})*,\d{2}" # This pattern matches a percentage sign followed by a space, and then 1 to 5 digits, a comma, and 2 more digits. It can be used to match strings like "% 465,12".
 netto_pattern = r"%\s*\d{1,3}(?:\s+\d{3})*,\d{2}" # + ,00
+brutto_pattern = r"(?<=Packaging:).*?\n(\d[\d,. ]*)\s*Total Gross Weight"
 inv_pattern = r"\d{2}03\w+"  
 dl_pattern = r"\d{2}(?:SL|MH)01\w+"
 order_pattern = r"\d{2}[A-Z0-9]{4}0\d{9}INVOICE"
@@ -128,6 +131,7 @@ print(table)
 codes = re.findall(zb_pattern, table)
 quantity_list = re.findall(quant_pattern, table)
 quantity_list = [quantity.replace('pc', '').replace('\xa0', '').strip() for quantity in quantity_list]
+brutto_list = re.findall(brutto_pattern,page_text)
 description = re.findall(desc_pattern, table)
 #description = [desc.replace("\xa0"," ").strip() for desc in description] # this will remove \xa0 from the string but it will not find it afterwards
 netto = re.findall(netto_pattern,table)
@@ -179,18 +183,20 @@ print("Founded city: ",founded_city)
 print("Founded state: ",founded_state)
 print("Codes: ", codes)
 print("Quantity: ", quantity_list)
-#print("Start Product description: ", description)
+print("Start Product description: ", description)
 print("Netto list is: ", netto)
+print("Brutto list is: ", brutto_list)
 print("End list : ",end_list)  
 print("Invoice number is: ", invoice)
 print("Delivery note number is:", dl_note)
 print("Order number is: ", order_num)
 
-
+#perc_netto = ["%" + x for x in netto] # can replicate like ["%" + x,   for x in netto]
+#print("percent netto: ",perc_netto)
 
 def find_description():
     description_list = []
-    for start, end in zip(netto, end_list):
+    for start, end in zip(description, end_list):
         start_pos = table.find(start) + len(start) + 1
         end_pos = table.find(end, start_pos) # finds the index of the first occurrence of end after the start substring.
         desc_row=table[start_pos:end_pos + 2]
@@ -198,10 +204,22 @@ def find_description():
     return description_list
 
 description_list = find_description()
-
+print(description_list)
         
 print("\n\n\n" )
 #print(page_text)
+print(text)
+print(repr(delivery_adress))
+
+
+
+
+
+
+
+
+
+
 
 
 #EXCEL PART
@@ -210,9 +228,9 @@ workbook = load_workbook("PL_blank.xlsx")
 ws = workbook["List1"]
 
 
-delivery_adress = delivery_adress.replace("Delivery adress:\n","")
+
 adress_cell = ws["B9"]
-adress_cell.alignment = Alignment(horizontal='left', wrap_text=True)
+adress_cell.alignment = Alignment(horizontal='left',vertical="top", wrap_text=True)
 adress_cell.value = delivery_adress
 
 

@@ -16,8 +16,8 @@ city_names = set(city['name'] for city in cities.values())
     for element in page_layout:
         print(element)"""
  
-inv_header = "invoice_2.pdf"        
-text = extract_text("inv_header")
+inv_header = "invoice_3.pdf"        
+text = extract_text(inv_header)
 
 
 delivery = text.find("Delivery")
@@ -158,11 +158,16 @@ print("Invoice number is: ", invoice)
 print("Delivery note number is:", dl_note)
 print("Order number is: ", order_num)
 
-for start, end in zip(netto, end_list):
-    start_pos = table.find(start) + len(start) + 1
-    end_pos = table.find(end, start_pos) # finds the index of the first occurrence of end after the start substring.
-    print(table[start_pos:end_pos + 2])
+def find_description():
+    description_list = []
+    for start, end in zip(netto, end_list):
+        start_pos = table.find(start) + len(start) + 1
+        end_pos = table.find(end, start_pos) # finds the index of the first occurrence of end after the start substring.
+        desc_row=table[start_pos:end_pos + 2]
+        description_list.append(desc_row)
+    return description_list
 
+description_list = find_description()
 
 print("\n\n\n")
 #print(page_text)
@@ -178,6 +183,9 @@ adress_cell.alignment = Alignment(horizontal='left', wrap_text=True)
 adress_cell.value = delivery_adress
 
 
+order_cell = ws["A3"]
+order_cell.value = "ORDER : " +  ", ".join(order_num)
+
 PL_cell = ws["A5"]
 #PL_cell.alignment = Alignment(horizontal='center', wrap_text=True)
 PL_cell.value = "PACKING LIST - " + ", ".join(dl_note)
@@ -187,7 +195,26 @@ INV_cell = ws["A7"]
 #INV_cell.alignment = Alignment(horizontal='center', wrap_text=True)
 INV_cell.value = "INVOICE: " + invoice
 
+inco_cell = ws["A36"]
+inco_cell.value = founded_inco + ": " + founded_city + " (according INCOTERMS 2010)"
 
+
+def write_description(worksheet, column, values, start_row):
+    for i, value in enumerate(values):
+        row = start_row + i
+        cell = worksheet[column + str(row)]
+        cell.value = value
+        if cell.value.isdigit():
+            cell.value = int(cell.value)
+
+write_description(ws,"A",codes,20)
+write_description(ws,"B",description_list,20)
+write_description(ws,"C",quantity_list,20)
+pcs =[]
+count = len(codes)
+for i in range(count):
+    pcs.append("pcs")
+write_description(ws,"D",pcs,20)
 
 workbook.save(f"PL {dl_note[0]} {founded_city} {founded_state}.xlsx")
 print("PL was saved and exported")

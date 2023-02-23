@@ -15,9 +15,18 @@ city_names = set(city['name'] for city in cities.values())
 """for page_layout in extract_pages("invoice.pdf"):
     for element in page_layout:
         print(element)"""
- 
-inv_header = "invoice_3.pdf"        
+
+
+
+
+
+
+inv_header = "Invoice no. 230300237.pdf"        
 text = extract_text(inv_header)
+
+
+
+
 
 
 delivery = text.find("Delivery")
@@ -67,10 +76,8 @@ zb = done
 quant = done
 description = done
 """
-print(text)
-print(founded_inco)
-print(founded_city)
-print(founded_state)
+#print(text)
+
 
 
 
@@ -112,7 +119,7 @@ inv_pattern = r"\d{2}03\w+"
 dl_pattern = r"\d{2}(?:SL|MH)01\w+"
 order_pattern = r"\d{2}[A-Z0-9]{4}0\d{9}INVOICE"
 
-  
+
 table,page_text = print_pages()
 
 print(table)
@@ -149,6 +156,9 @@ def last_element(table, pattern):
 end_list,row_table = last_element(table,zb_pattern)
 
 # Print the results
+print("Founded incoterm: ",founded_inco)
+print("Founded city: ",founded_city)
+print("Founded state: ",founded_state)
 print("Codes: ", codes)
 print("Quantity: ", quantity_list)
 #print("Start Product description: ", description)
@@ -157,6 +167,16 @@ print("End list : ",end_list)
 print("Invoice number is: ", invoice)
 print("Delivery note number is:", dl_note)
 print("Order number is: ", order_num)
+
+variable_names = [founded_inco, founded_city, founded_state, codes, quantity_list, netto, end_list, invoice, dl_note, order_num]
+
+
+for var in variable_names:
+    if eval(var) is None:
+        # ask user to manually input value
+        new_value = input(f"Please enter a value for {var}: ")
+        # set new value for variable
+        exec(f"{var} = {new_value}")
 
 def find_description():
     description_list = []
@@ -169,10 +189,13 @@ def find_description():
 
 description_list = find_description()
 
-print("\n\n\n")
+    
+        
+print("\n\n\n" )
 #print(page_text)
 
 
+#EXCEL PART
 
 workbook = load_workbook("PL_blank.xlsx")
 ws = workbook["List1"]
@@ -218,5 +241,6 @@ write_description(ws,"D",pcs,20)
 
 workbook.save(f"PL {dl_note[0]} {founded_city} {founded_state}.xlsx")
 print("PL was saved and exported")
+
 
 

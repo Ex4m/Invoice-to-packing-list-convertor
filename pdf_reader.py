@@ -186,7 +186,7 @@ print("Quantity: ", quantity_list)
 print("Start Product description: ", description)
 print("Netto list is: ", netto)
 print("Brutto list is: ", brutto_list)
-print("End list : ",end_list)  
+#print("End list : ",end_list)  
 print("Invoice number is: ", invoice)
 print("Delivery note number is:", dl_note)
 print("Order number is: ", order_num)
@@ -197,30 +197,214 @@ print("Order number is: ", order_num)
 def find_description():
     description_list = []
     for start, end in zip(description, end_list):
-        start_pos = table.find(start) + len(start) + 1
-        end_pos = table.find(end, start_pos) # finds the index of the first occurrence of end after the start substring.
-        desc_row=table[start_pos:end_pos + 2]
+        start_pos = table.find(start) + len(start)
+        end_pos = table.find("\n", start_pos) # finds the index of the first occurrence of end after the start substring.
+        desc_row=table[start_pos:end_pos]
         description_list.append(desc_row)
     return description_list
 
 description_list = find_description()
-print(description_list)
+description_list = [desc.lstrip("\xa0").lstrip(" ") for desc in description_list]
+#print(repr(description_list))
+#print(description_list)
         
 print("\n\n\n" )
 #print(page_text)
-print(text)
-print(repr(delivery_adress))
+#print(table)
+#print(text)
+#print(repr(delivery_adress))
+
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+#Quick Volume calculation PART
+response = ["y","yes","yap","yeah",","]
+# Create an empty DataFrame
+quant = []
+length = []
+width = []
+height = []
+weight= []
+
+named_columns ={"Quantity [0]": quant,
+                "Length [1]": length,
+                "Width [2]": width,
+                "Height [3]": height}
+named_columns_w_weight = {"Quantity [0]": quant,
+                          "Length [1]": length,
+                          "Width [2]": width,
+                          "Height [3]": height,
+                          "Weight [4]": weight,
+                          "----": []}
+df = pd.DataFrame(named_columns)
+df2 = pd.DataFrame(named_columns_w_weight)
 
 
 
+# Definition for customs func.
+def format_values(value):
+    """Formating values in a way that will replace entries of "," with ".". Also let you repair input if it was used as wrong type
+
+    Args:
+        value (not_specified): User input which than is evaulated and ideally transfered to float
+
+    Returns:
+        value: Return formated value of the entry input
+    """
+    try:
+        value = float(value)
+        return value
+    except ValueError:
+        try:
+            value = value.replace(",",".")
+            value = float(value)
+            return value
+        except ValueError:
+            while True:
+                try:
+                    value = input("Invalid input, Please enter a value, not a text: ")
+                    value = value.replace(",",".")
+                    value = float(value)
+                    return value
+                except:
+                    continue
+
+def Repair_table(used_df, repair_it):
+    """Repair function which will specify the dimensions of the matrix and then rewrite it´s value
+
+    Args:
+        used_df (pandas.core.frame.DataFrame): used dataframe to repair within
+        repair_it (str): string of responses 
+
+    Returns:
+        _type_: _description_
+    """
+    if repair_it.lower() in response:
+        print("\n\n\n------------Actual REPAIRED table ----------")
+        print(used_df)
+        print("\n Now tell me dimensions which you wish to change")
+        first_dim = int(input("Tell me first dimension of the matrix - i.e. order num. of the row: "))
+        second_dim = int(input("Tell me second dimension of the matrix - i.e. order num. of the column: "))
+        value = format_values(input("What value you would like to write there: "))
+        used_df.iat[first_dim,second_dim] = value
+        print("\n")
+        print(used_df)
+        return True
+    else:
+        return False
+    
+    
+start_pack = input("Do you want to add packing manually ? y/n: ")
+if start_pack:
+            
+    weight_inp = input("Do you wish to include weight columns? y/n: ")        
+    while True:
+        # Get user input for dimensions
+        quant = format_values(input("Enter how many cartons: "))
+        length = format_values(input("Enter length: "))
+        width = format_values(input("Enter width: "))
+        height = format_values(input("Enter height: "))
+                
+        if weight_inp in response:
+            weight = format_values(input("Enter weight: "))
+            
+
+        # Create new row as dictionary and then convert it to dataframe which can be concatenate afterwards with existing dataframe
+        if weight_inp not in response:
+            new_row = {"Quantity [0]":quant,"Length [1]":length,"Width [2]":width,"Height [3]": height}
+            new_row = pd.DataFrame([new_row])
+            df = pd.concat([df, new_row], ignore_index=True)
+            print(df)
+        if weight_inp in response:
+            new_row_weight = {"Quantity [0]":quant,"Length [1]":length,"Width [2]":width,"Height [3]": height,"Weight [4]": weight, "----": []}
+            new_row_weight = pd.DataFrame([new_row_weight])
+            df2 = pd.concat([df2, new_row_weight], ignore_index=True)
+            print(df2)
+
+
+        more = input("Do you want to add more dimensions? y/n: ")
+        if  more.lower() not in response:
+            break
+
+
+        
+        
+    repair_it = input("Do you wish to repair any value? y/n: ")
+    flag = False
+    if weight_inp in response:
+        flag = Repair_table(df2,repair_it)
+    elif weight_inp not in response:
+        flag = Repair_table(df,repair_it)
+    
+    while flag:
+        repair_it = input("Do you wish to repair any value? y/n: ")
+        if weight_inp in response:
+            flag = Repair_table(df2,repair_it)
+        elif weight_inp not in response:
+            flag = Repair_table(df,repair_it)
+        
+
+    if weight_inp not in response:
+        df_orig = pd.DataFrame.copy(df)
+        df["Volume"] = df["Quantity [0]"] * df["Length [1]"] * df["Width [2]"] * df["Height [3]"] / 1000000
+        df["Volumetric weight (167*cbm)"] = df["Length [1]"] * df["Width [2]"] * df["Height [3]"] * 167 / 1000000
+        columns_for_sum =["Quantity [0]","Volume","Volumetric weight (167*cbm)"]
+
+        total = df.loc["TOTAL"] = df[columns_for_sum].sum(numeric_only= True, axis = 0, skipna = True)
+        
+        
+        df_orig = df_orig.applymap(lambda x: int(x) if type(x) == float and x == round(x) else x)
+        #new column and conversion to one line which is printable
+        df_orig["len_Wi_Hei"] = df_orig.apply(lambda x: f'{x["Quantity [0]"]}x  {x["Length [1]"]}x{x["Width [2]"]}x{x["Height [3]"]} cm', axis=1)
+        df_orig["len_Wi_Hei"].to_excel("vol2.xlsx", index=False, sheet_name='Sheet1', header=True)
+        print("\n\n\n--------------RESULT-----------------")
+        print(df)
+        
+        
+    def add_packing(row):
+        """Function which will evaulate wheter is the dimensions provided suitable more for pallet or carton
+
+        Args:
+            row (row): each row of the df
+
+        Returns:
+            str: what kind of string to apply to Packing column as output
+        """
+        if (row["Length [1]"] >= 80 and row["Width [2]"] >= 60) or (row["Length [1]"] >= 60 and row["Width [2]"] >= 80):
+            return "plt"
+        else:
+            return "ctn"
+    
+    
+        
+    if weight_inp in response:
+        df2_orig = pd.DataFrame.copy(df2)
+        df2["Packing"] = df2.apply(add_packing, axis=1)
+        df2["Volume"] = df2["Quantity [0]"] * df2["Length [1]"] * df2["Width [2]"] * df2["Height [3]"] / 1000000
+        df2["Total Weight"] = df2["Quantity [0]"]*df2["Weight [4]"]
+        df2["Volumetric weight (167*cbm)"] = df2["Volume"] * 167
+
+        columns_for_sum =["Quantity [0]","Volume","Total Weight","Volumetric weight (167*cbm)"]
+        total = df2.loc["TOTAL"] = df2[columns_for_sum].sum(numeric_only= True, axis = 0, skipna = True)
+
+   
+        df2_orig = df2_orig.applymap(lambda x: int(x) if type(x) == float and x == round(x) else x)
+        #new column and conversion to one line which is printable
+        df2_orig["len_Wi_Hei_Wei"] = df2_orig.apply(lambda x: f'{x["Quantity [0]"]}x  {x["Length [1]"]}x{x["Width [2]"]}x{x["Height [3]"]} cm  {x["Weight [4]"]} kg/', axis=1) 
+        df2["Packing"] = df2.apply(lambda x: f'{x["Packing"]}',axis=1 )
+        df2_orig = df2_orig.assign(Packing=df2["Packing"], blank1=["----"]* len(df2_orig), blank2=["----"]* len(df2_orig), Volume=df2["Volume"], Weight=df2["Weight [4]"])
+        df2_orig["len_Wi_Hei_Wei_Pack"] = df2_orig.apply(lambda x: f'{x["Quantity [0]"]}x  {x["Length [1]"]}x{x["Width [2]"]}x{x["Height [3]"]} cm  {x["Weight [4]"]} kg/{x["Packing"]}', axis=1)
+        df2_orig["Total Weight"] = df2_orig["Quantity [0]"] * df2_orig["Weight [4]"]
+        cols_for_sum =["Volume","Total Weight"]
+        total = df2_orig.loc["TOTAL"] = df2_orig[cols_for_sum].sum(numeric_only= True, axis = 0, skipna = True)
+        df2_orig[["Volume","Total Weight","----","----","len_Wi_Hei_Wei_Pack"]].to_excel("vol2.xlsx", index=False, sheet_name='Sheet1', header=True)
+   
 
 
 
-
-
-
-
-
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 
 #EXCEL PART
 
@@ -257,6 +441,18 @@ def write_description(worksheet, column, values, start_row):
         cell.value = value
         if cell.value.isdigit():
             cell.value = int(cell.value)
+
+
+#packing
+pack_cell = ws["E20"]
+if start_pack:
+    for i, value in enumerate(df2_orig["len_Wi_Hei_Wei_Pack"]):
+        cell = ws.cell(row=pack_cell.row + i, column=pack_cell.column)
+        cell.value = value
+
+
+
+
 
 write_description(ws,"A",codes,20)
 write_description(ws,"B",description_list,20)

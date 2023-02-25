@@ -444,16 +444,53 @@ def write_description(worksheet, column, values, start_row):
 
 
 #packing
+def count_packing(df):
+    plt_count = df.loc[df['Packing'] == 'plt', 'Quantity [0]'].sum()
+    ctn_count = df.loc[df['Packing'] == 'ctn', 'Quantity [0]'].sum()
+    if plt_count == 0:
+        if ctn_count == 1:
+           return f'{int(ctn_count)} ctn' 
+        else:
+            return f'{int(ctn_count)} ctns' 
+    elif ctn_count == 0:
+        if plt_count == 1:
+           return f'{int(plt_count)} plt' 
+        else:
+            return f'{int(plt_count)} plts' 
+    elif plt_count > 1 and ctn_count == 1:
+        return f'{int(plt_count)} plts and {int(ctn_count)} ctn'
+    elif plt_count == 1 and ctn_count > 1:
+        return f'{int(plt_count)} plt and {int(ctn_count)} ctns'
+    else:
+        return f'{int(plt_count)} plts and {int(ctn_count)} ctns'
+    
 pack_cell = ws["E20"]
+weight_cell = ws["C46"]
+unit_cell = ws["D46"]
+cbm_desc = ws["B47"]
+cbm_tot = ws["C47"]
+quant_and_kind = ws["C45"]
+header_tot_w = ws["E41"]
+
 if start_pack:
     for i, value in enumerate(df2_orig["len_Wi_Hei_Wei_Pack"]):
         cell = ws.cell(row=pack_cell.row + i, column=pack_cell.column)
         cell.value = value
 
+    weight_cell.value = df2_orig.loc["TOTAL", "Total Weight"] 
+    weight_cell.alignment = Alignment(horizontal='right', wrap_text = True)
+    unit_cell.value = "Kgs"
+    unit_cell.alignment = Alignment(horizontal="left", wrap_text = True)
+    cbm_desc.value = "Total cbm:"
+    cbm_desc.alignment = Alignment(horizontal="left", wrap_text = True)
+    cbm_tot.value = df2_orig.loc["TOTAL", "Volume"] 
+    ws["D47"].value = "cbm"
+    packing = count_packing(df2_orig)
+    quant_and_kind.value = packing
+    header_w = round(df2_orig.loc["TOTAL", "Total Weight"], 2)
+    header_tot_w.value = "Total Gross Weight: " + "{:.2f}".format(header_w).replace(".", ",") + " Kgs"
 
-
-
-
+    
 write_description(ws,"A",codes,20)
 write_description(ws,"B",description_list,20)
 write_description(ws,"C",quantity_list,20)

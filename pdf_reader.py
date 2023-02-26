@@ -343,24 +343,6 @@ if start_pack:
         elif weight_inp not in response:
             flag = Repair_table(df,repair_it)
         
-
-    if weight_inp not in response:
-        df_orig = pd.DataFrame.copy(df)
-        df["Volume"] = df["Quantity [0]"] * df["Length [1]"] * df["Width [2]"] * df["Height [3]"] / 1000000
-        df["Volumetric weight (167*cbm)"] = df["Length [1]"] * df["Width [2]"] * df["Height [3]"] * 167 / 1000000
-        columns_for_sum =["Quantity [0]","Volume","Volumetric weight (167*cbm)"]
-
-        total = df.loc["TOTAL"] = df[columns_for_sum].sum(numeric_only= True, axis = 0, skipna = True)
-        
-        
-        df_orig = df_orig.applymap(lambda x: int(x) if type(x) == float and x == round(x) else x)
-        #new column and conversion to one line which is printable
-        df_orig["len_Wi_Hei"] = df_orig.apply(lambda x: f'{x["Quantity [0]"]}x  {x["Length [1]"]}x{x["Width [2]"]}x{x["Height [3]"]} cm', axis=1)
-        df_orig["len_Wi_Hei"].to_excel("vol2.xlsx", index=False, sheet_name='Sheet1', header=True)
-        print("\n\n\n--------------RESULT-----------------")
-        print(df)
-        
-        
     def add_packing(row):
         """Function which will evaulate wheter is the dimensions provided suitable more for pallet or carton
 
@@ -374,6 +356,24 @@ if start_pack:
             return "plt"
         else:
             return "ctn"
+        
+    if weight_inp not in response:
+        df_orig = pd.DataFrame.copy(df)
+        df_orig["Packing"] = df_orig.apply(add_packing, axis=1)
+        df["Volume"] = df["Quantity [0]"] * df["Length [1]"] * df["Width [2]"] * df["Height [3]"] / 1000000
+        df["Volumetric weight (167*cbm)"] = df["Length [1]"] * df["Width [2]"] * df["Height [3]"] * 167 / 1000000
+        columns_for_sum =["Quantity [0]","Volume","Volumetric weight (167*cbm)"]
+
+        total = df.loc["TOTAL"] = df[columns_for_sum].sum(numeric_only= True, axis = 0, skipna = True)
+        
+        
+        df_orig = df_orig.applymap(lambda x: int(x) if type(x) == float and x == round(x) else x)
+        #new column and conversion to one line which is printable
+        df_orig["len_Wi_Hei_Pack"] = df_orig.apply(lambda x: f'{x["Quantity [0]"]} {x["Packing"]}  {x["Length [1]"]}x{x["Width [2]"]}x{x["Height [3]"]} cm ', axis=1)
+        
+        
+        
+
     
     
         
@@ -469,10 +469,11 @@ weight_cell = ws["C46"]
 unit_cell = ws["D46"]
 cbm_desc = ws["B47"]
 cbm_tot = ws["C47"]
+cbm_unit = ws["D47"]
 quant_and_kind = ws["C45"]
 header_tot_w = ws["E41"]
 
-if start_pack:
+if start_pack and weight_inp in response:
     for i, value in enumerate(df2_orig["len_Wi_Hei_Wei_Pack"]):
         cell = ws.cell(row=pack_cell.row + i, column=pack_cell.column)
         cell.value = value
@@ -484,12 +485,22 @@ if start_pack:
     cbm_desc.value = "Total cbm:"
     cbm_desc.alignment = Alignment(horizontal="left", wrap_text = True)
     cbm_tot.value = df2_orig.loc["TOTAL", "Volume"] 
-    ws["D47"].value = "cbm"
+    cbm_unit.value = "cbm"
     packing = count_packing(df2_orig)
     quant_and_kind.value = packing
     header_w = round(df2_orig.loc["TOTAL", "Total Weight"], 2)
     header_tot_w.value = "Total Gross Weight: " + "{:.2f}".format(header_w).replace(".", ",") + " Kgs"
-
+    
+elif start_pack and weight_inp not in response:
+    for i, value in enumerate(df_orig["len_Wi_Hei_Pack"]):
+        cell = ws.cell(row=pack_cell.row + i, column=pack_cell.column)
+        cell.value = value
+    packing = count_packing(df_orig)
+    quant_and_kind.value = packing
+    cbm_desc.value = "Total cbm:"
+    cbm_desc.alignment = Alignment(horizontal="left", wrap_text = True)
+    cbm_tot.value = df.loc["TOTAL", "Volume"] 
+    cbm_unit.value = "cbm"
     
 write_description(ws,"A",codes,20)
 write_description(ws,"B",description_list,20)

@@ -111,10 +111,10 @@ def print_pages():
             
         table_end = page_text.find("OTHERS")
         table = page_text[table_start:table_end]
-        if table_start == var1:
+        """if table_start == var1:
             table = [i for i in table if i != "PRODUCTS"]
         if table_start == var2:
-            table = [i for i in table if i != "GOODS"]    
+            table = [i for i in table if i != "GOODS"]   """ 
         return table,page_text
     
 

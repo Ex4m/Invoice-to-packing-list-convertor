@@ -302,7 +302,7 @@ def Repair_table(used_df, repair_it):
     
     
 start_pack = input("Do you want to add packing manually ? y/n: ")
-if start_pack:
+if start_pack.lower() in response:
             
     weight_inp = input("Do you wish to include weight columns? y/n: ")        
     while True:

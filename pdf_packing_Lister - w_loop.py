@@ -106,10 +106,11 @@ def print_pages():
         var2 = page_text.find("PRODUCTS")
         if var1 > var2:
             table_start = var1
-        else:
+        if var2 < var1:
             table_start = var2
-            
-        table_end = page_text.find("OTHERS")
+        elif var1 and var2 == -1:
+            continue   
+        table_end = page_text.find("Total:")
         table = page_text[table_start:table_end]
         """if table_start == var1:
             table = [i for i in table if i != "PRODUCTS"]
@@ -119,6 +120,7 @@ def print_pages():
     
 
 
+    
 
 # Define the regular expression patterns
 zb_pattern = r"ZB\w+"
@@ -155,6 +157,16 @@ invoice = invoice.group(0)
 dl_note = inv_lookup(dl_pattern,page_text)
 order_num = inv_lookup(order_pattern, page_text)
 order_num = [order.replace("INVOICE","") for order in order_num]
+
+
+
+
+
+for dl in dl_note:
+    print_pages(dl)
+
+
+
 
 def last_element(table, pattern):
     row_table = table.split('\n')

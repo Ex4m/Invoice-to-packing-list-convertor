@@ -97,10 +97,8 @@ def print_pages():
     for page_num in range(num_pages):
         # Get the page object for the current page
         page = pdf_reader.pages[page_num]
-
         # Extract the text content from the page
         page_text = page.extract_text()
-
         # Print the text content to the console
         var1 = page_text.find("GOODS")
         var2 = page_text.find("PRODUCTS")
@@ -167,7 +165,7 @@ order_num = [order.replace("INVOICE","") for order in order_num]
 
 
 for dl in dl_note:
-    print_pages()[dl]
+    print_pages()
 
 
 
@@ -331,7 +329,6 @@ if start_pack.lower() in response:
         if weight_inp in response:
             weight = format_values(input("Enter weight: "))
             
-
         # Create new row as dictionary and then convert it to dataframe which can be concatenate afterwards with existing dataframe
         if weight_inp not in response:
             new_row = {"Quantity [0]":quant,"Length [1]":length,"Width [2]":width,"Height [3]": height}
@@ -343,13 +340,15 @@ if start_pack.lower() in response:
             new_row_weight = pd.DataFrame([new_row_weight])
             df2 = pd.concat([df2, new_row_weight], ignore_index=True)
             print(df2)
-
+        else:
+            print("Let´s quit, then")
+            break  
 
         more = input("Do you want to add more dimensions? y/n: ")
         if  more.lower() not in response:
             break
 
-
+          
         
         
     repair_it = input("Do you wish to repair any value? y/n: ")

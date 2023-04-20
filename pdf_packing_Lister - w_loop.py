@@ -104,14 +104,18 @@ def print_pages():
         # Print the text content to the console
         var1 = page_text.find("GOODS")
         var2 = page_text.find("PRODUCTS")
-        if var1 > var2:
+        if var1 <= var2:
             table_start = var1
-        if var2 < var1:
+        if var1 > var2:
             table_start = var2
         elif var1 and var2 == -1:
             continue   
-        table_end = page_text.find("Total:")
-        table = page_text[table_start:table_end]
+        table_end = page_text.find("OTHERS") # or Total, whatever comes first   
+        table_end2 = page_text.find("Total:")
+        if table_end > table_end2:
+            table = page_text[table_start:table_end]
+        else:
+            table = page_text[table_start:table_end2]
         """if table_start == var1:
             table = [i for i in table if i != "PRODUCTS"]
         if table_start == var2:
@@ -163,7 +167,7 @@ order_num = [order.replace("INVOICE","") for order in order_num]
 
 
 for dl in dl_note:
-    print_pages(dl)
+    print_pages()[dl]
 
 
 

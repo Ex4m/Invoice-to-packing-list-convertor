@@ -91,7 +91,9 @@ pdf_reader = pypdf.PdfReader(inv_header)
 
 # Get the number of pages in the PDF file
 num_pages = len(pdf_reader.pages)
-def print_simple_pages():
+
+# Loop over each page in the PDF file
+def print_pages():
     for page_num in range(num_pages):
         # Get the page object for the current page
         page = pdf_reader.pages[page_num]
@@ -108,48 +110,8 @@ def print_simple_pages():
         table = page_text[table_start:table_end]
         return table,page_text
     
-# Loop over each page in the PDF file
-def print_pages(dl_note):
-    tables = []
-    for page_num in range(num_pages):
-        # Get the page object for the current page
-        page = pdf_reader.pages[page_num]
-        # Extract the text content from the page
-        page_text = page.extract_text()
-
-        # Iterate over each subject in the delivery note
-        for i in range(len(dl_note)):
-            dl_note_start = page_text.find(dl_note[i])
-            if dl_note_start == -1:
-                continue
-            dl_note_end = len(page_text) if i == len(dl_note)-1 else page_text.find(dl_note[i+1])
-            if dl_note_end == -1:
-                dl_note_end = len(page_text)
 
 
-            # Find the table in the delivery note
-            var1 = page_text.find("GOODS", dl_note_start, dl_note_end)
-            var2 = page_text.find("PRODUCTS", dl_note_start, dl_note_end)
-            if var1 <= var2:
-                table_start = var1
-            if var1 > var2:
-                table_start = var2
-            elif var1 and var2 == -1:
-                continue   
-            table_end = page_text.find("OTHERS", dl_note_start, dl_note_end) # or Total, whatever comes first   
-            table_end2 = page_text.find("Total:", dl_note_start, dl_note_end)
-            if table_end < table_end2:
-                table = page_text[table_start:table_end]
-            else:
-                table = page_text[table_start:table_end2]
-            tables.append(table)
-
-    return tables
-
-    
-
-
-    
 
 # Define the regular expression patterns
 zb_pattern = r"ZB\w+"
@@ -162,8 +124,7 @@ dl_pattern = r"\d{2}(?:SL|MH)01\w+"
 order_pattern = r"\d{2}[A-Z0-9]{4}0\d{9}INVOICE"
 
 
-
-table,page_text = print_simple_pages()
+table,page_text = print_pages()
 
 print(table)
 # Find all matches of the code pattern in the input string
@@ -188,16 +149,6 @@ dl_note = inv_lookup(dl_pattern,page_text)
 order_num = inv_lookup(order_pattern, page_text)
 order_num = [order.replace("INVOICE","") for order in order_num]
 
-
-
-
-
-tables = print_pages(dl_note)
-
-for i in tables:
-    print(i)
-    
-# je nutné přepsat na iterování přes tables
 def last_element(table, pattern):
     row_table = table.split('\n')
     end_list = []
@@ -344,7 +295,7 @@ def Repair_table(used_df, repair_it):
     
     
 start_pack = input("Do you want to add packing manually ? y/n: ")
-if start_pack.lower() in response:
+if start_pack:
             
     weight_inp = input("Do you wish to include weight columns? y/n: ")        
     while True:
@@ -357,6 +308,7 @@ if start_pack.lower() in response:
         if weight_inp in response:
             weight = format_values(input("Enter weight: "))
             
+
         # Create new row as dictionary and then convert it to dataframe which can be concatenate afterwards with existing dataframe
         if weight_inp not in response:
             new_row = {"Quantity [0]":quant,"Length [1]":length,"Width [2]":width,"Height [3]": height}
@@ -368,15 +320,13 @@ if start_pack.lower() in response:
             new_row_weight = pd.DataFrame([new_row_weight])
             df2 = pd.concat([df2, new_row_weight], ignore_index=True)
             print(df2)
-        else:
-            print("Let´s quit, then")
-            break  
+
 
         more = input("Do you want to add more dimensions? y/n: ")
         if  more.lower() not in response:
             break
 
-          
+
         
         
     repair_it = input("Do you wish to repair any value? y/n: ")

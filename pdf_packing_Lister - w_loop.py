@@ -91,7 +91,7 @@ pdf_reader = pypdf.PdfReader(inv_header)
 
 # Get the number of pages in the PDF file
 num_pages = len(pdf_reader.pages)
-def print_simple_pages():
+"""def print_simple_pages():
     for page_num in range(num_pages):
         # Get the page object for the current page
         page = pdf_reader.pages[page_num]
@@ -106,10 +106,10 @@ def print_simple_pages():
             table_start = page_text.find("PRODUCTS")
         table_end = page_text.find("OTHERS")
         table = page_text[table_start:table_end]
-        return table,page_text
+        return table,page_text"""
     
 # Loop over each page in the PDF file
-def print_pages(dl_note):
+def print_pages():
     tables = []
     for page_num in range(num_pages):
         # Get the page object for the current page
@@ -117,10 +117,12 @@ def print_pages(dl_note):
         # Extract the text content from the page
         page_text = page.extract_text()
 
+        dl_note = inv_lookup(dl_pattern,page_text)
         # Iterate over each subject in the delivery note
         for i in range(len(dl_note)):
             dl_note_start = page_text.find(dl_note[i])
             if dl_note_start == -1:
+                print("Delivery note not found")
                 continue
             dl_note_end = len(page_text) if i == len(dl_note)-1 else page_text.find(dl_note[i+1])
             if dl_note_end == -1:
@@ -144,7 +146,7 @@ def print_pages(dl_note):
                 table = page_text[table_start:table_end2]
             tables.append(table)
 
-    return tables
+    return tables, page_text, dl_note
 
     
 
@@ -162,54 +164,60 @@ dl_pattern = r"\d{2}(?:SL|MH)01\w+"
 order_pattern = r"\d{2}[A-Z0-9]{4}0\d{9}INVOICE"
 
 
-
-table,page_text = print_simple_pages()
-
-print(table)
-# Find all matches of the code pattern in the input string
-codes = re.findall(zb_pattern, table)
-quantity_list = re.findall(quant_pattern, table)
-quantity_list = [quantity.replace('pc', '').replace('\xa0', '').strip() for quantity in quantity_list]
-brutto_list = re.findall(brutto_pattern,page_text)
-description = re.findall(desc_pattern, table)
-#description = [desc.replace("\xa0"," ").strip() for desc in description] # this will remove \xa0 from the string but it will not find it afterwards
-netto = re.findall(netto_pattern,table)
-netto = [net.replace("%","").replace('\xa0', '') for net in netto]
-
-
 def inv_lookup(what_to_look_for, text):
     findings = re.findall(what_to_look_for, text)
     return findings
 
+
+# Find all matches of the code pattern in the input string
+tables,page_text,dl_note = print_pages()
+
+for table in tables:
+    print(table)
 invoice = re.search(inv_pattern, page_text)
 invoice = invoice.group(0)
 
-dl_note = inv_lookup(dl_pattern,page_text)
+
 order_num = inv_lookup(order_pattern, page_text)
 order_num = [order.replace("INVOICE","") for order in order_num]
 
+def extract_data(tables, page_text):
+    table_results = []
+    for table in tables:
+        # Find all matches of the code pattern in the input string
+        codes = re.findall(zb_pattern, table)
+        quantity_list = re.findall(quant_pattern, table)
+        quantity_list = [quantity.replace('pc', '').replace('\xa0', '').strip() for quantity in quantity_list]
+        brutto_list = re.findall(brutto_pattern, page_text)
+        description = re.findall(desc_pattern, table)
+        netto = re.findall(netto_pattern, table)
+        netto = [net.replace("%", "").replace('\xa0', '') for net in netto]
+        table_results.append((codes, quantity_list, brutto_list, description, netto))
+    return table_results
 
+def last_element(tables, pattern):
+    results = []
+    for table in tables:
+        row_table = table.split('\n')
+        end_list = []
+        for row in row_table:
+            if re.search(pattern, row):
+                end = row.split()[-1]
+                end_list.append(end)
+        results.append((end_list, row_table))
+    return results
 
+def find_description(tables, description, results):
+    description_list = []
+    for i, table in enumerate(tables):
+        end_list, row_table = results[i]
+        for start, end in zip(description, end_list):
+            start_pos = row_table[0].find(start) + len(start)
+            end_pos = row_table[0].find("\n", start_pos)
+            desc_row = table[start_pos:end_pos]
+            description_list.append(desc_row.lstrip("\xa0").lstrip(" "))
+    return description_list
 
-
-tables = print_pages(dl_note)
-
-for i in tables:
-    print(i)
-    
-# je nutné přepsat na iterování přes tables
-def last_element(table, pattern):
-    row_table = table.split('\n')
-    end_list = []
-    for row in row_table:
-        if re.search(pattern, row):
-            end = row.split()[-1]
-            end_list.append(end)
-    return end_list, row_table
-
-end_list,row_table = last_element(table,zb_pattern)
-
-print("\n\n\n")
 def solidity_check(founded_city, founded_state):
     if founded_city is None or founded_state is None:
         if founded_city is None:
@@ -222,8 +230,17 @@ def solidity_check(founded_city, founded_state):
     
     print("City and Country code are OK")
     return founded_city, founded_state
-founded_city,founded_state = solidity_check(founded_city,founded_state)
 
+# Extract data from the tables
+table_results = extract_data(tables, page_text)
+print(table_results)
+codes, quantity_list, brutto_list, description, netto = table_results
+
+# Perform the remaining processing steps
+founded_city,founded_state = solidity_check(founded_city,founded_state)
+results = last_element(tables, zb_pattern)
+description_list = find_description(tables, description, results)
+description_list = [desc.lstrip("\xa0").lstrip(" ") for desc in description_list]
 
 # Print the results
 print("\n\n\n")
@@ -240,20 +257,14 @@ print("Invoice number is: ", invoice)
 print("Delivery note number is:", dl_note)
 print("Order number is: ", order_num)
 
+
 #perc_netto = ["%" + x for x in netto] # can replicate like ["%" + x,   for x in netto]
 #print("percent netto: ",perc_netto)
 
-def find_description():
-    description_list = []
-    for start, end in zip(description, end_list):
-        start_pos = table.find(start) + len(start)
-        end_pos = table.find("\n", start_pos) # finds the index of the first occurrence of end after the start substring.
-        desc_row=table[start_pos:end_pos]
-        description_list.append(desc_row)
-    return description_list
 
-description_list = find_description()
-description_list = [desc.lstrip("\xa0").lstrip(" ") for desc in description_list]
+
+
+
 #print(repr(description_list))
 #print(description_list)
         

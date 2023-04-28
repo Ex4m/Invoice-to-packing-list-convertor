@@ -13,11 +13,6 @@ cities = gc.get_cities()
 state_list = list(pycountry.countries) 
 city_names = set(city['name'] for city in cities.values())
 
-"""for page_layout in extract_pages("invoice.pdf"):
-    for element in page_layout:
-        print(element)"""
-
-
 
 while True:
     try:
@@ -36,10 +31,10 @@ def end_of_delivery():
     len1 = len(text[delivery:end1-1])
     len2 = len(text[delivery:end2-1])
     if len1 < len2 and len1 > 50:
-        print("Returning end1 - Payment")
+        #print("Returning end1 - Payment")
         return end1
     elif len2 < len1 and len2 > 50:
-        print("Returning end2 - For custom")
+        #print("Returning end2 - For custom")
         return end2
     else:
         return end1
@@ -61,28 +56,27 @@ def incoterm_overlook(incoterm_list):
             else:
                 return i
 
-def find_city(delivery_adress):
-    tokenized = delivery_adress.split()
+def find_city(tokenized):
     if "Asahi" in tokenized:
         tokenized.remove("Asahi")
+        #print("Asahi removed")
     for i in tokenized:
         if gc.get_cities_by_name(i):
             return i
     
     
 
-def find_state_code():
-    tokenized = delivery_adress.split()
+def find_state_code(tokenized):
     if "AS" in tokenized:
         tokenized.remove("AS")
     for i in tokenized:
         if i in [country.alpha_2 for country in pycountry.countries]:
             return i 
       
-    
+tokenized = list(set(delivery_adress.split()))    
 founded_inco = incoterm_overlook(incoterm_list)
-founded_city = find_city(delivery_adress)
-founded_state = find_state_code()
+founded_city = find_city(tokenized)
+founded_state = find_state_code(tokenized)
 
 
 pdf_reader = pypdf.PdfReader(inv_header)
@@ -116,7 +110,7 @@ def print_pages():
 # Define the regular expression patterns
 zb_pattern = r"ZB\w+"
 quant_pattern = r"pc\s*\d{1,3}(?:\s+\d{3})*" # matches zero or more groups of one or more whitespace characters followed by exactly three digits.
-desc_pattern = r"(?<!PRODUCTS)%\s*\d{1,3}(?:\s+\d{3})*,\d{2}" # This pattern matches a percentage sign followed by a space, and then 1 to 5 digits, a comma, and 2 more digits. It can be used to match strings like "% 465,12".
+desc_pattern = r"%\s*\d{1,3}(?:\s+\d{3})*,\d{2}" # This pattern matches a percentage sign followed by a space, and then 1 to 5 digits, a comma, and 2 more digits. It can be used to match strings like "% 465,12".
 netto_pattern = r"%\s*\d{1,3}(?:\s+\d{3})*,\d{2}" # + ,00
 brutto_pattern = r"(?<=Packaging:).*?\n(\d[\d,. ]*)\s*Total Gross Weight"
 inv_pattern = r"\d{2}03\w+"  
@@ -126,9 +120,9 @@ order_pattern = r"\d{2}[A-Z0-9]{4}0\d{9}INVOICE"
 
 table,page_text = print_pages()
 
-print(table)
+"""print(table)
 print("---------------------------------------------------")
-print(page_text)
+print(page_text)"""
 # Find all matches of the code pattern in the input string
 codes = re.findall(zb_pattern, page_text)
 quantity_list = re.findall(quant_pattern, page_text)
@@ -196,34 +190,18 @@ print("Order number is: ", order_num)
 #perc_netto = ["%" + x for x in netto] # can replicate like ["%" + x,   for x in netto]
 #print("percent netto: ",perc_netto)
 
-"""def find_description():
-    description_list = []
-    for start, end in zip(description, end_list):
-        start_pos = table.find(start) + len(start)
-        end_pos = table.find("\n", start_pos) # finds the index of the first occurrence of end after the start substring.
-        desc_row=table[start_pos:end_pos]
-        description_list.append(desc_row)
-    return description_list
-
-description_list = find_description()
-description_list = [desc.lstrip("\xa0").lstrip(" ") for desc in description_list]"""
-
-
-
 def find_description():
     description_list = []
     for line in page_text.split("\n"):
         if re.search(zb_pattern, line):
-            print(line)
-            start_index = line.find(desc_pattern) 
-            print(start_index)
-            end_index = page_text.find("\n", start_index)
-            print(end_index)
-            description_text = page_text[start_index:end_index].strip()
+            #print(line)
+            start_index = re.search(desc_pattern, line).end()
+            #print(start_index)
+            end_index = len(line)
+            #print(end_index)
+            description_text = line[start_index:end_index].strip()
             description_list.append(description_text)
     return description_list
-
-
 
 
 description_list = find_description()
@@ -319,7 +297,7 @@ def Repair_table(used_df, repair_it):
     
     
 start_pack = input("Do you want to add packing manually ? y/n: ")
-if start_pack:
+if start_pack in response:
             
     weight_inp = input("Do you wish to include weight columns? y/n: ")        
     while True:
@@ -497,7 +475,8 @@ cbm_unit = ws["D47"]
 quant_and_kind = ws["C45"]
 header_tot_w = ws["E41"]
 
-if start_pack and weight_inp in response:
+if start_pack in response and weight_inp in response:
+
     for i, value in enumerate(df2_orig["len_Wi_Hei_Wei_Pack"]):
         cell = ws.cell(row=pack_cell.row + i, column=pack_cell.column)
         cell.value = value
@@ -515,7 +494,7 @@ if start_pack and weight_inp in response:
     header_w = round(df2_orig.loc["TOTAL", "Total Weight"], 2)
     header_tot_w.value = "Total Gross Weight: " + "{:.2f}".format(header_w).replace(".", ",") + " Kgs"
     
-elif start_pack and weight_inp not in response:
+elif start_pack  in response and weight_inp not in response:
     for i, value in enumerate(df_orig["len_Wi_Hei_Pack"]):
         cell = ws.cell(row=pack_cell.row + i, column=pack_cell.column)
         cell.value = value
